@@ -17,6 +17,7 @@ import kotlinx.android.synthetic.main.fragment_reminders.*
  * A simple [Fragment] subclass as the default destination in the navigation.
  */
 class RemindersFragment : Fragment() {
+    private lateinit var reminderRepository: ReminderRepository
 
     private val reminders = arrayListOf<Reminder>()
     private val reminderAdapter = ReminderAdapter(reminders)
@@ -33,7 +34,19 @@ class RemindersFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         initViews()
+
+        reminderRepository = ReminderRepository(requireContext())
+        getRemindersFromDatabase()
+
     }
+
+    private fun getRemindersFromDatabase() {
+        val reminders = reminderRepository.getAllReminders()
+        this@RemindersFragment.reminders.clear()
+        this@RemindersFragment.reminders.addAll(reminders)
+        reminderAdapter.notifyDataSetChanged()
+    }
+
 
     private fun initViews(){
         rvReminders.layoutManager =
@@ -49,8 +62,8 @@ class RemindersFragment : Fragment() {
             bundle.getString(BUNDLE_REMINDER_KEY)?.let {
                 val reminder = Reminder(it)
 
-                reminders.add(reminder)
-                reminderAdapter.notifyDataSetChanged()
+                reminderRepository.insertReminder(reminder)
+                getRemindersFromDatabase()
             } ?: Log.e("ReminderFragment", "Request triggered, but empty reminder text!")
 
         }
@@ -74,8 +87,10 @@ class RemindersFragment : Fragment() {
             // Callback triggered when a user swiped an item.
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.adapterPosition
-                reminders.removeAt(position)
-                reminderAdapter.notifyDataSetChanged()
+                val reminderToDelete = reminders[position]
+                reminderRepository.deleteReminder(reminderToDelete)
+                getRemindersFromDatabase()
+
             }
         }
         return ItemTouchHelper(callback)
